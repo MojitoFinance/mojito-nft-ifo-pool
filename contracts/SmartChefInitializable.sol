@@ -299,7 +299,6 @@ contract SmartChefInitializable is Ownable, ReentrancyGuard {
         }
 
         uint256 stakedTokenSupply = stakedToken.balanceOf(address(this));
-
         if (stakedTokenSupply == 0) {
             lastRewardBlock = block.number;
             return;
