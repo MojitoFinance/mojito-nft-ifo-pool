@@ -1,6 +1,6 @@
-# @mojitoswap-libs/mojito-swap-farm
+# @mojitoswap-libs/mojito-nft-ifo-pool
 
-[![Actions Status](https://github.com/MojitoFinance/mojito-swap-farm/workflows/CI/badge.svg)](https://github.com/MojitoFinance/mojito-swap-farm/actions)
+[![Actions Status](https://github.com/MojitoFinance/mojito-nft-ifo-pool/workflows/CI/badge.svg)](https://github.com/MojitoFinance/mojito-nft-ifo-pool/actions)
 
 # Local Development
 

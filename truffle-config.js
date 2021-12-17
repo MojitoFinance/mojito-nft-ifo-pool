@@ -30,8 +30,8 @@ module.exports = {
             cdn:            true,
             json:           false,
             reportDir:      "doc",
-            reportTitle:    "mojito-swap-farm",
-            reportFilename: "mojito-swap-farm",
+            reportTitle:    "mojito-nft-ifo-pool",
+            reportFilename: "mojito-nft-ifo-pool",
         },
     },
     compilers: {

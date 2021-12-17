@@ -1,11 +1,11 @@
 {
-  "name": "@mojitoswap-libs/mojito-swap-farm",
-  "description": "🎛 Farm contracts for the mojito protocol",
+  "name": "@mojitoswap-libs/mojito-nft-ifo-pool",
+  "description": "🎛 NFT/IFO/POOL contracts for the mojito protocol",
   "version": "0.1.0",
   "homepage": "https://mojitoswap.finance",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MojitoFinance/mojito-swap-farm.git"
+    "url": "https://github.com/MojitoFinance/mojito-swap-nft-ifo-pool.git"
   },
   "files": [
     "contracts",
