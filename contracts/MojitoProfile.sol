@@ -499,7 +499,7 @@ contract MojitoProfile is AccessControl, ERC721Holder, ReentrancyGuard {
         bool
     )
     {
-        require(hasRegistered[_userAddress], "Not registered");
+        require(hasRegistered[_userAddress], "MojitoProfile::getUserProfile: Has not registered");
         return (
         users[_userAddress].userId,
         users[_userAddress].numberPoints,
