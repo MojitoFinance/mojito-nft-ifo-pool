@@ -412,7 +412,7 @@ contract MojitoProfile is AccessControl, ERC721Holder, ReentrancyGuard {
      * Callable only by special admins.
      */
     function changeTeam(address _userAddress, uint256 _newTeamId) external onlySpecial {
-        require(hasRegistered[_userAddress], "MojitoProfile::changeTeam: User doesn't exist");
+        require(hasRegistered[_userAddress], "MojitoProfile::changeTeam: Has not registered");
         require((_newTeamId <= numberTeams) && (_newTeamId > 0), "MojitoProfile::changeTeam: Invalid teamId");
         require(teams[_newTeamId].isJoinable, "MojitoProfile::changeTeam: Team not joinable");
         require(users[_userAddress].teamId != _newTeamId, "MojitoProfile::changeTeam: Already in the team");
