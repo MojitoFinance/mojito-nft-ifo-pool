@@ -413,7 +413,7 @@ contract MojitoProfile is AccessControl, ERC721Holder, ReentrancyGuard {
      */
     function changeTeam(address _userAddress, uint256 _newTeamId) external onlySpecial {
         require(hasRegistered[_userAddress], "MojitoProfile::changeTeam: User doesn't exist");
-        require((_newTeamId <= numberTeams) && (_newTeamId > 0), "MojitoProfile::changeTeam: TeamId doesn't exist");
+        require((_newTeamId <= numberTeams) && (_newTeamId > 0), "MojitoProfile::changeTeam: Invalid teamId");
         require(teams[_newTeamId].isJoinable, "MojitoProfile::changeTeam: Team not joinable");
         require(users[_userAddress].teamId != _newTeamId, "MojitoProfile::changeTeam: Already in the team");
 
@@ -445,7 +445,7 @@ contract MojitoProfile is AccessControl, ERC721Holder, ReentrancyGuard {
      * Callable only by owner admins.
      */
     function makeTeamJoinable(uint256 _teamId) external onlyOwner {
-        require((_teamId <= numberTeams) && (_teamId > 0), "MojitoProfile::makeTeamJoinable: TeamId invalid");
+        require((_teamId <= numberTeams) && (_teamId > 0), "MojitoProfile::makeTeamJoinable: Invalid teamId");
         teams[_teamId].isJoinable = true;
     }
 
@@ -454,7 +454,7 @@ contract MojitoProfile is AccessControl, ERC721Holder, ReentrancyGuard {
      * Callable only by owner admins.
      */
     function makeTeamNotJoinable(uint256 _teamId) external onlyOwner {
-        require((_teamId <= numberTeams) && (_teamId > 0), "MojitoProfile::makeTeamNotJoinable: TeamId invalid");
+        require((_teamId <= numberTeams) && (_teamId > 0), "MojitoProfile::makeTeamNotJoinable: Invalid teamId");
         teams[_teamId].isJoinable = false;
     }
 
@@ -463,7 +463,7 @@ contract MojitoProfile is AccessControl, ERC721Holder, ReentrancyGuard {
      * Callable only by owner admins.
      */
     function renameTeam(uint256 _teamId, string calldata _teamName, string calldata _teamDescription) external onlyOwner {
-        require((_teamId <= numberTeams) && (_teamId > 0), "MojitoProfile::renameTeam: TeamId invalid");
+        require((_teamId <= numberTeams) && (_teamId > 0), "MojitoProfile::renameTeam: Invalid teamId");
 
         // Verify length is between 3 and 16
         bytes memory strBytes = bytes(_teamName);
@@ -531,7 +531,7 @@ contract MojitoProfile is AccessControl, ERC721Holder, ReentrancyGuard {
         bool
     )
     {
-        require((_teamId <= numberTeams) && (_teamId > 0), "MojitoProfile::getTeamProfile: TeamId invalid");
+        require((_teamId <= numberTeams) && (_teamId > 0), "MojitoProfile::getTeamProfile: Invalid teamId");
         return (
         teams[_teamId].teamName,
         teams[_teamId].teamDescription,
