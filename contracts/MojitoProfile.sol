@@ -285,18 +285,18 @@ contract MojitoProfile is AccessControl, ERC721Holder, ReentrancyGuard {
         IERC721 nftToken = IERC721(_nftAddress);
         require(_msgSender() == nftToken.ownerOf(_tokenId), "MojitoProfile::reactivateProfile: Only NFT owner can update");
 
-        // Transfer to this address
-        mojitoToken.safeTransferFrom(_msgSender(), address(this), numberMojitoToReactivate);
-
         // Transfer NFT to contract
         nftToken.safeTransferFrom(_msgSender(), address(this), _tokenId);
+
+        // Transfer to this address
+        mojitoToken.safeTransferFrom(_msgSender(), address(this), numberMojitoToReactivate);
 
         // Retrieve teamId of the user
         uint256 userTeamId = users[_msgSender()].teamId;
 
         // Update number of users for the team and number of active profiles
-        teams[userTeamId].numberUsers = teams[userTeamId].numberUsers.add(1);
         numberActiveProfiles = numberActiveProfiles.add(1);
+        teams[userTeamId].numberUsers = teams[userTeamId].numberUsers.add(1);
 
         // Update user statuses
         users[_msgSender()].isActive = true;
