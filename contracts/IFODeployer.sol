@@ -45,7 +45,7 @@ contract IFODeployer is Ownable {
     ) external onlyOwner {
         require(IKRC20(_lpToken).totalSupply() >= 0);
         require(IKRC20(_offeringToken).totalSupply() >= 0);
-        require(_lpToken != _offeringToken, "IFODeployer::createIFO: Tokens must be be different");
+        require(_lpToken != _offeringToken, "IFODeployer::createIFO: Tokens must be different");
         require(_endBlock < (block.number + MAX_BUFFER_BLOCKS), "IFODeployer::createIFO: EndBlock too far");
         require(_startBlock < _endBlock, "IFODeployer::createIFO: StartBlock must be inferior to endBlock");
         require(_startBlock > block.number, "IFODeployer::createIFO: StartBlock must be greater than current block");
