@@ -19,10 +19,12 @@ describe("MojitoCattleFactory", function () {
     const [caller, other] = accounts;
     before(async function () {
         this.mojitoToken  = await MojitoERC20Mock.new("ERC20", "ERC20", {from: caller});
+        this.someToken    = await MojitoERC20Mock.new("ERC20", "ERC20", {from: caller});
         this.mojitoCattle = await MojitoCattle.new("ipfs://", {from: caller});
         this.self         = await MojitoCattleFactory.new(this.mojitoToken.address, this.mojitoCattle.address, {from: caller});
         await this.mojitoCattle.grantRole("0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6", this.self.address, {from: caller});
         await this.mojitoToken.mint(caller, "10000000000000000000");
+        await this.someToken.mint(this.self.address, "10000000000000000000");
         await this.mojitoToken.approve(this.self.address, constants.MAX_UINT256, {from: caller});
     });
 
@@ -278,6 +280,36 @@ describe("MojitoCattleFactory", function () {
     it("canMint()", async function () {
         expect(await this.self.canMint(caller)).to.be.equal(false);
         expect(await this.self.canMint(other)).to.be.equal(true);
+    });
+
+    it("recoverWrongTokens(not owner)", async function () {
+        await expectRevert(this.self.recoverWrongTokens(
+            this.someToken.address,
+            "10000000000000000000",
+        ), "Ownable: caller is not the owner");
+    });
+
+    it("recoverWrongTokens(mojito token error)", async function () {
+        await expectRevert(this.self.recoverWrongTokens(
+            this.mojitoToken.address,
+            "10000000000000000000",
+            {from: caller},
+        ), "MojitoCattleFactory::recoverWrongTokens: Cannot be mojito token");
+    });
+
+    it("recoverWrongTokens()", async function () {
+        await expectEvent(await this.self.recoverWrongTokens(
+            this.someToken.address,
+            "10000000000000000000",
+            {from: caller},
+            ),
+            "AdminTokenRecovery",
+            {
+                tokenAddress: this.someToken.address,
+                amountTokens: "10000000000000000000",
+            });
+        expect(await this.someToken.balanceOf(caller)).to.be.bignumber.equal(new BN("10000000000000000000"));
+        expect(await this.someToken.balanceOf(this.self.address)).to.be.bignumber.equal(new BN("0"));
     });
 
 });

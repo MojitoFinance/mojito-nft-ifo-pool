@@ -35,6 +35,7 @@ contract MojitoCattleFactory is ReentrancyGuard, Ownable {
     event MojitoPriceSet(uint256 cattleId, uint256 previousMojitoPrice, uint256 newMojitoPrice);
     event StartBlockNumberSet(uint256 cattleId, uint256 previousStartBlockNumber, uint256 newStartBlockNumber);
     event EndBlockNumberSet(uint256 cattleId, uint256 previousEndBlockNumber, uint256 newEndBlockNumber);
+    event AdminTokenRecovery(address tokenAddress, uint256 amountTokens);
 
     constructor(IKRC20 _mojitoToken, MojitoCattle _mojitoCattle) public {
         mojitoToken = _mojitoToken;
@@ -109,6 +110,20 @@ contract MojitoCattleFactory is ReentrancyGuard, Ownable {
 
     function claimFee(uint256 _amount) external onlyOwner {
         mojitoToken.safeTransfer(_msgSender(), _amount);
+    }
+
+    /**
+     * @notice It allows the admin to recover wrong tokens sent to the contract
+     * @param _tokenAddress: the address of the token to withdraw
+     * @param _tokenAmount: the number of token amount to withdraw
+     * @dev This function is only callable by admin.
+     */
+    function recoverWrongTokens(address _tokenAddress, uint256 _tokenAmount) external onlyOwner {
+        require(_tokenAddress != address(mojitoToken), "MojitoCattleFactory::recoverWrongTokens: Cannot be mojito token");
+
+        IKRC20(_tokenAddress).safeTransfer(address(msg.sender), _tokenAmount);
+
+        emit AdminTokenRecovery(_tokenAddress, _tokenAmount);
     }
 
     /**
