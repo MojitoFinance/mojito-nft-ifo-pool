@@ -35,17 +35,17 @@ describe("MojitoCattleFactory", function () {
     });
 
     it("addMojitoCattleInformation(not owner)", async function () {
-        await expectRevert(this.self.addMojitoCattleInformation("Dabbler", "hash/dabbler.json", "5000000000000000000", "110", "220"),
+        await expectRevert(this.self.addMojitoCattleInformation("Dabbler", "hash/dabbler.json", "5000000000000000000", "180", "220"),
             "Ownable: caller is not the owner");
     });
 
     it("addMojitoCattleInformation(>20)", async function () {
-        await expectRevert(this.self.addMojitoCattleInformation("012345678901234567890", "hash/dabbler.json", "5000000000000000000", "110", "220", {from: caller}),
+        await expectRevert(this.self.addMojitoCattleInformation("012345678901234567890", "hash/dabbler.json", "5000000000000000000", "180", "220", {from: caller}),
             "MojitoCattleFactory::addMojitoCattleInformation: Must be < 20");
     });
 
     it("addMojitoCattleInformation(<3)", async function () {
-        await expectRevert(this.self.addMojitoCattleInformation("01", "hash/dabbler.json", "5000000000000000000", "110", "220", {from: caller}),
+        await expectRevert(this.self.addMojitoCattleInformation("01", "hash/dabbler.json", "5000000000000000000", "180", "220", {from: caller}),
             "MojitoCattleFactory::addMojitoCattleInformation: Must be > 3");
     });
 
@@ -55,7 +55,7 @@ describe("MojitoCattleFactory", function () {
     });
 
     it("addMojitoCattleInformation(endBlockNumber<startBlockNumber)", async function () {
-        await expectRevert(this.self.addMojitoCattleInformation("Dabbler", "hash/dabbler.json", "5000000000000000000", "110", "100", {from: caller}),
+        await expectRevert(this.self.addMojitoCattleInformation("Dabbler", "hash/dabbler.json", "5000000000000000000", "180", "100", {from: caller}),
             "MojitoCattleFactory::addMojitoCattleInformation: New startBlock must be lower than new endBlock");
     });
 
@@ -64,7 +64,7 @@ describe("MojitoCattleFactory", function () {
             "Dabbler",
             "hash/dabbler.json",
             "5000000000000000000",
-            "110",
+            "180",
             "220",
             {from: caller},
             ),
@@ -74,7 +74,7 @@ describe("MojitoCattleFactory", function () {
                 cattleName:       "Dabbler",
                 cattleURI:        "hash/dabbler.json",
                 mojitoPrice:      "5000000000000000000",
-                startBlockNumber: "110",
+                startBlockNumber: "180",
                 endBlockNumber:   "220",
             });
 
@@ -82,7 +82,7 @@ describe("MojitoCattleFactory", function () {
             "Highballer",
             "hash/highballer.json",
             "0",
-            "110",
+            "180",
             "220",
             {from: caller},
             ),
@@ -92,7 +92,7 @@ describe("MojitoCattleFactory", function () {
                 cattleName:       "Highballer",
                 cattleURI:        "hash/highballer.json",
                 mojitoPrice:      "0",
-                startBlockNumber: "110",
+                startBlockNumber: "180",
                 endBlockNumber:   "220",
             });
         expect(await this.mojitoCattle.getCattleName(1)).to.be.equal("Dabbler");
@@ -130,17 +130,17 @@ describe("MojitoCattleFactory", function () {
     });
 
     it("setStartBlockNumber(not owner)", async function () {
-        await expectRevert(this.self.setStartBlockNumber("1", "120"),
+        await expectRevert(this.self.setStartBlockNumber("1", "190"),
             "Ownable: caller is not the owner");
     });
 
     it("setStartBlockNumber(invalid id 000)", async function () {
-        await expectRevert(this.self.setStartBlockNumber("0", "120", {from: caller}),
+        await expectRevert(this.self.setStartBlockNumber("0", "190", {from: caller}),
             "MojitoCattleFactory::setStartBlockNumber: Invalid cattleId");
     });
 
     it("setStartBlockNumber(invalid id 200)", async function () {
-        await expectRevert(this.self.setStartBlockNumber("200", "120", {from: caller}),
+        await expectRevert(this.self.setStartBlockNumber("200", "190", {from: caller}),
             "MojitoCattleFactory::setStartBlockNumber: Invalid cattleId");
     });
 
@@ -157,17 +157,17 @@ describe("MojitoCattleFactory", function () {
     it("setStartBlockNumber()", async function () {
         await expectEvent(await this.self.setStartBlockNumber(
             "1",
-            "120",
+            "190",
             {from: caller},
             ),
             "StartBlockNumberSet",
             {
                 cattleId:                 "1",
-                previousStartBlockNumber: "110",
-                newStartBlockNumber:      "120",
+                previousStartBlockNumber: "180",
+                newStartBlockNumber:      "190",
             });
         const mojitoCattleCharacteristics = await this.self.mojitoCattleInformation("1");
-        expect(mojitoCattleCharacteristics.startBlockNumber).to.be.bignumber.equal(new BN("120"));
+        expect(mojitoCattleCharacteristics.startBlockNumber).to.be.bignumber.equal(new BN("190"));
     });
 
     it("setEndBlockNumber(not owner)", async function () {
@@ -191,7 +191,7 @@ describe("MojitoCattleFactory", function () {
     });
 
     it("setEndBlockNumber(endBlockNumber<startBlockNumber)", async function () {
-        await expectRevert(this.self.setEndBlockNumber("1", "100", {from: caller}),
+        await expectRevert(this.self.setEndBlockNumber("1", "190", {from: caller}),
             "MojitoCattleFactory::setEndBlockNumber: New endBlock must be greater than startBlock");
     });
 
@@ -232,7 +232,7 @@ describe("MojitoCattleFactory", function () {
     });
 
     it("initAccountAndAdvanceBlockTo(150)", async function () {
-        await time.advanceBlockTo(150);
+        await time.advanceBlockTo(195);
     });
 
     it("mintNFT()", async function () {
@@ -271,7 +271,7 @@ describe("MojitoCattleFactory", function () {
         expect(mojitoCattleInformation.cattleName).to.be.equal("Dabbler");
         expect(mojitoCattleInformation.cattleURI).to.be.equal("hash/dabbler.json");
         expect(mojitoCattleInformation.mojitoPrice).to.be.bignumber.equal(new BN("10000000000000000000"));
-        expect(mojitoCattleInformation.startBlockNumber).to.be.bignumber.equal(new BN("120"));
+        expect(mojitoCattleInformation.startBlockNumber).to.be.bignumber.equal(new BN("190"));
         expect(mojitoCattleInformation.endBlockNumber).to.be.bignumber.equal(new BN("230"));
     });
 
