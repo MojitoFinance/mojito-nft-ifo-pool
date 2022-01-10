@@ -43,7 +43,7 @@ contract MojitoCattleFactory is ReentrancyGuard, Ownable {
     }
 
     function addMojitoCattleInformation(string calldata _cattleName, string calldata _cattleURI, uint256 _mojitoPrice, uint256 _startBlockNumber, uint256 _endBlockNumber) external onlyOwner {
-        // Verify length is between 3 and 16
+        // Verify length is between 3 and 20
         bytes memory strBytes = bytes(_cattleName);
         require(strBytes.length < 20, "MojitoCattleFactory::addMojitoCattleInformation: Must be < 20");
         require(strBytes.length > 3, "MojitoCattleFactory::addMojitoCattleInformation: Must be > 3");
@@ -132,7 +132,7 @@ contract MojitoCattleFactory is ReentrancyGuard, Ownable {
      */
     function mintNFT(uint256 _cattleId) external nonReentrant {
         require((_cattleId <= _cattleIds.current()) && (_cattleId > 0), "MojitoCattleFactory::mintNFT: Invalid cattleId");
-        MojitoCattleCharacteristics storage mojitoCattleCharacteristics = mojitoCattleInformation[_cattleId];
+        MojitoCattleCharacteristics memory mojitoCattleCharacteristics = mojitoCattleInformation[_cattleId];
 
         // Check that mojitoCattle was set
         require(mojitoCattleCharacteristics.mojitoPrice > 0 && mojitoCattleCharacteristics.startBlockNumber > 0 && mojitoCattleCharacteristics.endBlockNumber > 0, "MojitoCattleFactory::mintNFT: MojitoCattleCharacteristics not set");

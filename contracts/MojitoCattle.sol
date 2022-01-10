@@ -30,7 +30,7 @@ contract MojitoCattle is AccessControl, ERC721Pausable {
     // Map the cattleId for each tokenId
     mapping(uint256 => uint256) private cattleIds;
 
-    // Map the cattleName for a tokenId
+    // Map the cattleName for a cattleId
     mapping(uint256 => string) private cattleNames;
 
     // Modifier for owner roles

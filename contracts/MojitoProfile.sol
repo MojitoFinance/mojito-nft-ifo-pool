@@ -385,7 +385,7 @@ contract MojitoProfile is AccessControl, ERC721Holder, ReentrancyGuard {
      * Callable only by owner admins.
      */
     function addTeam(string calldata _teamName, string calldata _teamDescription) external onlyOwner {
-        // Verify length is between 3 and 16
+        // Verify length is between 3 and 20
         bytes memory strBytes = bytes(_teamName);
         require(strBytes.length < 20, "MojitoProfile::addTeam: Must be < 20");
         require(strBytes.length > 3, "MojitoProfile::addTeam: Must be > 3");
@@ -465,7 +465,7 @@ contract MojitoProfile is AccessControl, ERC721Holder, ReentrancyGuard {
     function renameTeam(uint256 _teamId, string calldata _teamName, string calldata _teamDescription) external onlyOwner {
         require((_teamId <= numberTeams) && (_teamId > 0), "MojitoProfile::renameTeam: Invalid teamId");
 
-        // Verify length is between 3 and 16
+        // Verify length is between 3 and 20
         bytes memory strBytes = bytes(_teamName);
         require(strBytes.length < 20, "MojitoProfile::renameTeam: Must be < 20");
         require(strBytes.length > 3, "MojitoProfile::renameTeam: Must be > 3");
