@@ -124,6 +124,10 @@ describe("IFOInitializable", function () {
         expect(await this.self.endBlock()).to.be.bignumber.equal(new BN("100"));
     });
 
+    it("harvestBlock()", async function () {
+        expect(await this.self.harvestBlock()).to.be.bignumber.equal(new BN("100"));
+    });
+
     it("setPool(not owner)", async function () {
         await expectRevert(this.self.setPool(
             1,
@@ -250,6 +254,30 @@ describe("IFOInitializable", function () {
             });
     });
 
+    it("updateHarvestBlocks(not owner)", async function () {
+        await expectRevert(this.self.updateHarvestBlocks(
+            100,
+        ), "Ownable: caller is not the owner");
+    });
+
+    it("updateHarvestBlocks(endBlock>harvestBlock)", async function () {
+        await expectRevert(this.self.updateHarvestBlocks(
+            1,
+            {from: caller},
+        ), "IFOInitializable::updateHarvestBlocks: New harvestBlock must be higher than endBlock");
+    });
+
+    it("updateHarvestBlocks()", async function () {
+        await expectEvent(await this.self.updateHarvestBlocks(
+            "101",
+            {from: caller},
+            ),
+            "NewHarvestBlocks",
+            {
+                harvestBlock: "101",
+            });
+    });
+
     it("depositPool(too early)", async function () {
         await expectRevert(this.self.depositPool(
             "100",
@@ -283,6 +311,13 @@ describe("IFOInitializable", function () {
             100,
             {from: caller},
         ), "IFOInitializable::updateStartAndEndBlocks: IFO has started");
+    });
+
+    it("updateHarvestBlocks(startBlock<block.number)", async function () {
+        await expectRevert(this.self.updateHarvestBlocks(
+            1,
+            {from: caller},
+        ), "IFOInitializable::updateHarvestBlocks: IFO has started");
     });
 
     it("depositPool(no profile)", async function () {
@@ -435,8 +470,8 @@ describe("IFOInitializable", function () {
         ), "IFOInitializable::harvestPool: Too early");
     });
 
-    it("initAccountAndAdvanceBlockTo(100)", async function () {
-        await time.advanceBlockTo(100);
+    it("initAccountAndAdvanceBlockTo(101)", async function () {
+        await time.advanceBlockTo(101);
     });
 
     it("depositPool(too late)", async function () {

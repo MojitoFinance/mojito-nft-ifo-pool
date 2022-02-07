@@ -40,6 +40,9 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
     // The block number when IFO ends
     uint256 public endBlock;
 
+    // The block number when IFO starts harvest
+    uint256 public harvestBlock;
+
     // The campaignId for the IFO
     uint256 public campaignId;
 
@@ -92,6 +95,9 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
     // Event for new start & end blocks
     event NewStartAndEndBlocks(uint256 startBlock, uint256 endBlock);
 
+    // Event for harvest blocks
+    event NewHarvestBlocks(uint256 harvestBlock);
+
     // Event with point parameters for IFO
     event PointParametersSet(uint256 campaignId, uint256 numberPoints, uint256 thresholdPoints);
 
@@ -143,6 +149,7 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         mojitoProfile = MojitoProfile(_mojitoProfileAddress);
         startBlock = _startBlock;
         endBlock = _endBlock;
+        harvestBlock = _endBlock;
         MAX_BUFFER_BLOCKS = _maxBufferBlocks;
 
         // Transfer ownership to admin
@@ -206,7 +213,7 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
      */
     function harvestPool(uint8 _pid) external override nonReentrant notContract {
         // Checks whether it is too early to harvest
-        require(block.number > endBlock, "IFOInitializable::harvestPool: Too early");
+        require(block.number > harvestBlock, "IFOInitializable::harvestPool: Too early");
 
         // Checks whether pool id is valid
         require(_pid < NUMBER_POOLS, "IFOInitializable::harvestPool: Non valid pool id");
@@ -356,6 +363,20 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         endBlock = _endBlock;
 
         emit NewStartAndEndBlocks(_startBlock, _endBlock);
+    }
+
+    /**
+     * @notice It allows the admin to update harvest blocks
+     * @param _harvestBlock: the new harvest block
+     * @dev This function is only callable by admin.
+     */
+    function updateHarvestBlocks(uint256 _harvestBlock) external onlyOwner {
+        require(block.number < startBlock, "IFOInitializable::updateHarvestBlocks: IFO has started");
+        require(endBlock < _harvestBlock, "IFOInitializable::updateHarvestBlocks: New harvestBlock must be higher than endBlock");
+
+        harvestBlock = _harvestBlock;
+
+        emit NewHarvestBlocks(_harvestBlock);
     }
 
     /**
