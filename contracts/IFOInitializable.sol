@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/IKRC20.sol";
 import "./interfaces/IIFOV2.sol";
+import "./interfaces/IWhitelistable.sol";
+import "./interfaces/IVester.sol";
 import "./MojitoProfile.sol";
 
 contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
@@ -58,6 +60,8 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
     // Array of PoolCharacteristics of size NUMBER_POOLS
     PoolCharacteristics[NUMBER_POOLS] private _poolInformation;
 
+    PoolInfo[NUMBER_POOLS] private _poolInformation2;
+
     // Checks if user has claimed points
     mapping(address => bool) private _hasClaimedPoints;
 
@@ -72,6 +76,11 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         bool hasTax; // tax on the overflow (if any, it works with _calculateTaxOverflow)
         uint256 totalAmountPool; // total amount pool deposited (in LP tokens)
         uint256 sumTaxesOverflow; // total taxes collected (starts at 0, increases with each harvest if overflow)
+    }
+
+    struct PoolInfo {
+        address whitelister;
+        address vester;
     }
 
     // Struct that contains each user information for both pools
@@ -162,6 +171,8 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
      * @param _pid: pool id
      */
     function depositPool(uint256 _amount, uint8 _pid) external override nonReentrant notContract {
+        // Checks if account is whitelisted
+        require(_checkWhitelistStatus(_pid,msg.sender), "IFOInitializable::depositPool: This address is not in the whitelist");
         // Checks whether the user has an active profile
         require(mojitoProfile.getUserStatus(msg.sender), "IFOInitializable::depositPool: Must have an active profile");
 
@@ -244,7 +255,12 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
 
         // Transfer these tokens back to the user if quantity > 0
         if (offeringTokenAmount > 0) {
-            offeringToken.safeTransfer(address(msg.sender), offeringTokenAmount);
+            address vester = _poolInformation2[_pid].vester;
+            if(vester == address(0)){
+                offeringToken.safeTransfer(address(msg.sender), offeringTokenAmount);
+            }else{
+                IVester(vester).setUserInfoForAccount(_pid, offeringTokenAmount);
+            }
         }
 
         if (refundingTokenAmount > 0) {
@@ -304,7 +320,9 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         uint256 _raisingAmountPool,
         uint256 _limitPerUserInLP,
         bool _hasTax,
-        uint8 _pid
+        uint8 _pid,
+        address _whitelister,
+        address _vester
     ) external override onlyOwner {
         require(block.number < startBlock, "IFOInitializable::setPool: IFO has started");
         require(_pid < NUMBER_POOLS, "IFOInitializable::setPool: Pool does not exist");
@@ -313,6 +331,8 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         _poolInformation[_pid].raisingAmountPool = _raisingAmountPool;
         _poolInformation[_pid].limitPerUserInLP = _limitPerUserInLP;
         _poolInformation[_pid].hasTax = _hasTax;
+        _poolInformation2[_pid].whitelister = _whitelister;
+        _poolInformation2[_pid].vester = _vester;
 
         uint256 tokensDistributedAcrossPools;
 
@@ -409,6 +429,21 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         _poolInformation[_pid].hasTax,
         _poolInformation[_pid].totalAmountPool,
         _poolInformation[_pid].sumTaxesOverflow
+        );
+    }
+
+    function viewPoolInformation2(uint256 _pid)
+    external
+    view
+    override
+    returns (
+        address,
+        address
+    )
+    {
+        return (
+        _poolInformation2[_pid].whitelister,
+        _poolInformation2[_pid].vester
         );
     }
 
@@ -633,5 +668,14 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
             size := extcodesize(_addr)
         }
         return size > 0;
+    }
+
+    /**
+     * @dev Checks if account is whitelisted
+     * @param _account The address to check
+     */
+    function _checkWhitelistStatus(uint8 _pid,address _account) internal view returns (bool) {
+        address whitelistCheckerAddress = _poolInformation2[_pid].whitelister;
+        return (whitelistCheckerAddress == address(0)) || IWhitelistable(whitelistCheckerAddress).isWhitelisted(_account);
     }
 }

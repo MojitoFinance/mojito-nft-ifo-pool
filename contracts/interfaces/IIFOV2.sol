@@ -34,11 +34,13 @@ interface IIFOV2 {
      * @dev This function is only callable by admin.
      */
     function setPool(
-        uint256 _offeringAmountPool,
-        uint256 _raisingAmountPool,
-        uint256 _limitPerUserInLP,
-        bool _hasTax,
-        uint8 _pid
+      uint256 _offeringAmountPool,
+      uint256 _raisingAmountPool,
+      uint256 _limitPerUserInLP,
+      bool _hasTax,
+      uint8 _pid,
+      address _whitelister,
+      address _vester
     ) external;
 
     /**
@@ -68,6 +70,18 @@ interface IIFOV2 {
         bool,
         uint256,
         uint256
+    );
+
+    /**
+     * @notice It returns the pool information
+     * @param _pid: poolId
+     */
+    function viewPoolInformation2(uint256 _pid)
+    external
+    view
+    returns (
+      address,
+      address
     );
 
     /**
