@@ -28,16 +28,16 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
     bool claimedPool; // Whether the user has claimed (default: false) for pool
   }
 
-  event OfferingTokenSet(address _offeringToken);
+  event OfferingTokenSet(address indexed _offeringToken);
 
-  event NewVestingTime(uint256 _vestingTime);
+  event NewVestingTime(uint256 indexed _vestingTime);
 
-  event UserInfoSet(uint256 indexed _offeringTokenAmount, bool _claimedPool, uint8 indexed pid);
+  event UserInfoSet(address indexed _account, uint256 _offeringTokenAmount, bool _claimedPool, uint8 indexed _pid);
 
-  event Claim(address receiver, uint256 amount, uint8 pid);
+  event Claim(address indexed receiver, uint256 amount, uint8 indexed pid);
 
   // Admin recovers token
-  event AdminTokenRecovery(address indexed tokenRecovered, uint256 amount);
+  event AdminTokenRecovery(address indexed tokenRecovered, uint256 indexed amount);
 
   /**
    * @dev Modifier to make a function callable only when claim is allowed.
@@ -87,7 +87,7 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
   function setUserInfoForAccount(uint8 _pid, uint256 _offeringTokenAmount) external override  {
     _validateHandler();
     _userInfo[msg.sender][_pid].offeringTokenAmount = _offeringTokenAmount;
-    emit UserInfoSet(_offeringTokenAmount, _userInfo[msg.sender][_pid].claimedPool, _pid);
+    emit UserInfoSet(msg.sender, _offeringTokenAmount, _userInfo[msg.sender][_pid].claimedPool, _pid);
   }
 
   /**
