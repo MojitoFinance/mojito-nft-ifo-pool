@@ -19,7 +19,7 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
   address public offeringToken;
 
   // It maps the address to pool id to UserInfo
-  mapping(address => mapping(uint8 => UserInfo)) private _userInfo;
+  mapping(address => mapping(uint8 => UserInfo)) public _userInfo;
   mapping(address => bool) public isHandler;
 
   // Struct that contains each user information for both pools
@@ -28,16 +28,16 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
     bool claimedPool; // Whether the user has claimed (default: false) for pool
   }
 
-  event OfferingTokenSet(address indexed _offeringToken);
+  event OfferingTokenSet(address offeringToken);
 
-  event NewVestingTime(uint256 indexed _vestingTime);
+  event NewVestingTime(uint256 vestingTime);
 
-  event UserInfoSet(address indexed _account, uint256 _offeringTokenAmount, bool _claimedPool, uint8 indexed _pid);
+  event UserInfoSet(address indexed user, uint256 offeringTokenAmount, bool claimedPool, uint8 indexed pid);
 
   event Claim(address indexed receiver, uint256 amount, uint8 indexed pid);
 
   // Admin recovers token
-  event AdminTokenRecovery(address indexed tokenRecovered, uint256 indexed amount);
+  event AdminTokenRecovery(address indexed tokenRecovered, uint256 amount);
 
   /**
    * @dev Modifier to make a function callable only when claim is allowed.
@@ -84,10 +84,10 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
     emit OfferingTokenSet(_offeringToken);
   }
 
-  function setUserInfoForAccount(uint8 _pid, uint256 _offeringTokenAmount) external override  {
+  function setUserInfoForAccount(address _user, uint8 _pid, uint256 _offeringTokenAmount) external override  {
     _validateHandler();
-    _userInfo[msg.sender][_pid].offeringTokenAmount = _offeringTokenAmount;
-    emit UserInfoSet(msg.sender, _offeringTokenAmount, _userInfo[msg.sender][_pid].claimedPool, _pid);
+    _userInfo[_user][_pid].offeringTokenAmount = _offeringTokenAmount;
+    emit UserInfoSet(_user,_offeringTokenAmount, _userInfo[_user][_pid].claimedPool, _pid);
   }
 
   /**

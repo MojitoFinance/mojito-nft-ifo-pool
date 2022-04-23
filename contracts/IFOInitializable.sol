@@ -171,13 +171,14 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
      * @param _pid: pool id
      */
     function depositPool(uint256 _amount, uint8 _pid) external override nonReentrant notContract {
-        // Checks if account is whitelisted
-        require(_checkWhitelistStatus(_pid,msg.sender), "IFOInitializable::depositPool: This address is not in the whitelist");
         // Checks whether the user has an active profile
         require(mojitoProfile.getUserStatus(msg.sender), "IFOInitializable::depositPool: Must have an active profile");
 
         // Checks whether the pool id is valid
         require(_pid < NUMBER_POOLS, "IFOInitializable::depositPool: Non valid pool id");
+
+        // Checks if account is whitelisted, must check if pid is valid first
+        require(_checkWhitelistStatus(_pid, msg.sender), "IFOInitializable::depositPool: This address is not in the whitelist");
 
         // Checks that pool was set
         require(
@@ -256,10 +257,10 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         // Transfer these tokens back to the user if quantity > 0
         if (offeringTokenAmount > 0) {
             address vester = _poolInformation2[_pid].vester;
-            if(vester == address(0)){
+            if (vester == address(0)) {
                 offeringToken.safeTransfer(address(msg.sender), offeringTokenAmount);
-            }else{
-                IVester(vester).setUserInfoForAccount(_pid, offeringTokenAmount);
+            } else {
+                IVester(vester).setUserInfoForAccount(msg.sender, _pid, offeringTokenAmount);
             }
         }
 
@@ -348,8 +349,8 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
 
     /**
      * @notice It updates point parameters for the IFO.
-     * @param _numberPoints: the number of points for the IFO
      * @param _campaignId: the campaignId for the IFO
+     * @param _numberPoints: the number of points for the IFO
      * @param _thresholdPoints: the amount of LP required to receive points
      * @dev This function is only callable by admin.
      */
@@ -672,9 +673,10 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
 
     /**
      * @dev Checks if account is whitelisted
-     * @param _account The address to check
+     * @param _pid: poolId
+     * @param _account: The address to check
      */
-    function _checkWhitelistStatus(uint8 _pid,address _account) internal view returns (bool) {
+    function _checkWhitelistStatus(uint8 _pid, address _account) internal view returns (bool) {
         address whitelistCheckerAddress = _poolInformation2[_pid].whitelister;
         return (whitelistCheckerAddress == address(0)) || IWhitelistable(whitelistCheckerAddress).isWhitelisted(_account);
     }
