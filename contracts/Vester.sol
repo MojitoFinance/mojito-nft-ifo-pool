@@ -5,25 +5,23 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./interfaces/IVester.sol";
 import "./interfaces/IKRC20.sol";
 
-contract Vester is IVester, ReentrancyGuard, Ownable {
+contract Vester is IVester, ReentrancyGuard, Ownable, Pausable {
   using SafeERC20 for IKRC20;
 
-  // Number of pools
-  uint8 public constant NUMBER_POOLS = 2;
   uint256 public claimTime;
-  bool public claimStatus;
 
   // The address of the offeringToken
   address public offeringToken;
 
   // It maps the address to pool id to UserInfo
-  mapping(address => mapping(uint8 => UserInfo)) private _userInfo;
+  mapping(address => UserInfo) private _userInfo;
   mapping(address => bool) public isHandler;
 
-  // Struct that contains each user information for both pools
+  // Struct that contains each user information
   struct UserInfo {
     uint256 offeringTokenAmount; // How many offering tokens the user has provided for pool
     bool claimedPool; // Whether the user has claimed (default: false) for pool
@@ -33,11 +31,9 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
 
   event NewClaimTime(uint256 claimTime);
 
-  event NewClaimStatus(bool claimStatus);
+  event UserInfoSet(address indexed user, uint256 indexed offeringTokenAmount, bool claimedPool);
 
-  event UserInfoSet(address indexed user, uint256 offeringTokenAmount, bool claimedPool, uint8 indexed pid);
-
-  event Claim(address indexed receiver, uint256 amount, uint8 indexed pid);
+  event Claim(address indexed receiver, uint256 indexed amount);
 
   // Admin recovers token
   event AdminTokenRecovery(address indexed tokenRecovered, uint256 amount);
@@ -75,18 +71,6 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
   }
 
   /**
-   * @notice It allows the admin to update set claim status
-   * @param _claimStatus: the new vesting status
-   * @dev This function is only callable by admin.
-   */
-  function setClaimStatus(bool _claimStatus) external onlyOwner {
-
-    claimStatus = _claimStatus;
-
-    emit NewClaimStatus(_claimStatus);
-  }
-
-  /**
    * @notice It allows users to set offering token
    * @param _offeringToken: the token that is offered for the IFO
    * @dev This function is only callable by admin.
@@ -99,56 +83,50 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
   /**
    * @notice It allows ifo initializable contract to set user info
    * @param _user: user who participate in ifo
-   * @param _pid: user participation pool id
    * @param _offeringTokenAmount: the offering amount of user to be claimed in the pool
    * @dev This function is only callable by initializable contract.
    */
-  function setUserInfoForAccount(address _user, uint8 _pid, uint256 _offeringTokenAmount) external override {
+  function setUserInfoForAccount(address _user, uint256 _offeringTokenAmount) external override {
     _validateHandler();
-    _userInfo[_user][_pid].offeringTokenAmount = _offeringTokenAmount;
-    emit UserInfoSet(_user,_offeringTokenAmount, _userInfo[_user][_pid].claimedPool, _pid);
+    _userInfo[_user].offeringTokenAmount = _offeringTokenAmount;
+    emit UserInfoSet(_user,_offeringTokenAmount, _userInfo[_user].claimedPool);
   }
 
   /**
    * @notice It returns the user information
    * @param _user: user
-   * @param _pid: poolId
    * @return offeringTokenAmount: the offering amount of user to be claimed in the pool
    * @return claimedPool: whether the user has claimed
    */
-  function claimable(address _user, uint8 _pid) external view override returns (uint256, bool){
+  function claimable(address _user) external view override returns (uint256, bool){
     return (
-    _userInfo[_user][_pid].offeringTokenAmount,
-    _userInfo[_user][_pid].claimedPool
+    _userInfo[_user].offeringTokenAmount,
+    _userInfo[_user].claimedPool
     );
   }
 
   /**
    * @notice It allows users to claim from pool
-   * @param _pid: pool id
    */
-  function claim(uint8 _pid) external override nonReentrant notContract {
+  function claim() external override nonReentrant notContract {
     // Check if the claim is allowed
-    require(claimStatus || (block.timestamp > claimTime && claimTime > 0), "Vester: No claims allowed at current time");
+    require(!paused() || (block.timestamp > claimTime && claimTime > 0), "Vester: No claims allowed at current time");
 
     address _account = msg.sender;
 
-    // Checks whether pool id is valid
-    require(_pid < NUMBER_POOLS, "Vester: Non valid pool id");
-
     // Checks whether the user has participated
-    require(_userInfo[_account][_pid].offeringTokenAmount > 0, "Vester::claim: Did not participate");
+    require(_userInfo[_account].offeringTokenAmount > 0, "Vester::claim: Did not participate");
 
     // Checks whether the user has already claimed
-    require(!_userInfo[_account][_pid].claimedPool, "Vester::claim: Already done");
+    require(!_userInfo[_account].claimedPool, "Vester::claim: Already done");
 
-    _userInfo[_account][_pid].claimedPool = true;
+    _userInfo[_account].claimedPool = true;
 
-    uint256 _amount = _userInfo[_account][_pid].offeringTokenAmount;
+    uint256 _amount = _userInfo[_account].offeringTokenAmount;
 
     IKRC20(offeringToken).safeTransfer(address(this), _amount);
 
-    emit Claim(_account, _amount, _pid);
+    emit Claim(_account, _amount);
   }
 
   /**

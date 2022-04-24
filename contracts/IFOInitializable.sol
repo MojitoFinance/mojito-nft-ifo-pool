@@ -190,8 +190,11 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         // Checks that the amount deposited is not inferior to 0
         require(_amount > 0, "IFOInitializable::depositPool: Amount must be > 0");
 
-        // Verify tokens were deposited properly
-        require(offeringToken.balanceOf(address(this)) >= totalTokensOffered, "IFOInitializable::depositPool: Tokens not deposited properly");
+        address vester = _poolInformation[_pid].poolInfo.vester;
+        if (vester == address(0)) {
+            // Verify tokens were deposited properly
+            require(offeringToken.balanceOf(address(this)) >= totalTokensOffered, "IFOInitializable::depositPool: Tokens not deposited properly");
+        }
 
         // Transfers funds to this contract
         lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
@@ -255,7 +258,7 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
             if (vester == address(0)) {
                 offeringToken.safeTransfer(address(msg.sender), offeringTokenAmount);
             } else {
-                IVester(vester).setUserInfoForAccount(msg.sender, _pid, offeringTokenAmount);
+                IVester(vester).setUserInfoForAccount(msg.sender, offeringTokenAmount);
             }
         }
 
