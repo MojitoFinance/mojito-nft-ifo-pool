@@ -20,7 +20,7 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
   address public offeringToken;
 
   // It maps the address to pool id to UserInfo
-  mapping(address => mapping(uint8 => UserInfo)) public _userInfo;
+  mapping(address => mapping(uint8 => UserInfo)) private _userInfo;
   mapping(address => bool) public isHandler;
 
   // Struct that contains each user information for both pools
@@ -86,15 +86,41 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
     emit NewClaimStatus(_claimStatus);
   }
 
+  /**
+   * @notice It allows users to set offering token
+   * @param _offeringToken: the token that is offered for the IFO
+   * @dev This function is only callable by admin.
+   */
   function setOfferingToken(address _offeringToken) external onlyOwner {
     offeringToken = _offeringToken;
     emit OfferingTokenSet(_offeringToken);
   }
 
+  /**
+   * @notice It allows ifo initializable contract to set user info
+   * @param _user: user who participate in ifo
+   * @param _pid: user participation pool id
+   * @param _offeringTokenAmount: the offering amount of user to be claimed in the pool
+   * @dev This function is only callable by initializable contract.
+   */
   function setUserInfoForAccount(address _user, uint8 _pid, uint256 _offeringTokenAmount) external override {
     _validateHandler();
     _userInfo[_user][_pid].offeringTokenAmount = _offeringTokenAmount;
     emit UserInfoSet(_user,_offeringTokenAmount, _userInfo[_user][_pid].claimedPool, _pid);
+  }
+
+  /**
+   * @notice It returns the user information
+   * @param _user: user
+   * @param _pid: poolId
+   * @return offeringTokenAmount: the offering amount of user to be claimed in the pool
+   * @return claimedPool: whether the user has claimed
+   */
+  function claimable(address _user, uint8 _pid) external view override returns (uint256, bool){
+    return (
+    _userInfo[_user][_pid].offeringTokenAmount,
+    _userInfo[_user][_pid].claimedPool
+    );
   }
 
   /**
@@ -103,7 +129,7 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
    */
   function claim(uint8 _pid) external override nonReentrant notContract {
     // Check if the claim is allowed
-    require(claimStatus || (block.timestamp > claimTime && claimTime > 0), "Vester: claim time must be greater than claim time");
+    require(claimStatus || (block.timestamp > claimTime && claimTime > 0), "Vester: No claims allowed at current time");
 
     address _account = msg.sender;
 
@@ -125,6 +151,9 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
     emit Claim(_account, _amount, _pid);
   }
 
+  /**
+   * @notice Validate handler
+   */
   function _validateHandler() private view {
     require(isHandler[msg.sender], "Vester: forbidden");
   }
