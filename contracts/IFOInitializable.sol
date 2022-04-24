@@ -570,7 +570,7 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
             userOfferingAmount = _poolInformation[_pid].offeringAmountPool.mul(allocation).div(1e12);
 
             // Calculate the payAmount
-            uint256 payAmount = _poolInformation[_pid].raisingAmountPool.mul(allocation).div(1e12);
+            uint256 payAmount = _poolInformation[_pid].raisingAmountPool.mul(allocation).div(1e12).add(1);
 
             // Calculate the pre-tax refunding amount
             userRefundingAmount = _userInfo[_user][_pid].amountPool.sub(payAmount);
