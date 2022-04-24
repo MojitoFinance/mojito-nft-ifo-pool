@@ -13,7 +13,8 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
 
   // Number of pools
   uint8 public constant NUMBER_POOLS = 2;
-  uint256 public vestingTime;
+  uint256 public claimTime;
+  bool public claimStatus;
 
   // The address of the offeringToken
   address public offeringToken;
@@ -30,7 +31,9 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
 
   event OfferingTokenSet(address offeringToken);
 
-  event NewVestingTime(uint256 vestingTime);
+  event NewClaimTime(uint256 claimTime);
+
+  event NewClaimStatus(bool claimStatus);
 
   event UserInfoSet(address indexed user, uint256 offeringTokenAmount, bool claimedPool, uint8 indexed pid);
 
@@ -38,14 +41,6 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
 
   // Admin recovers token
   event AdminTokenRecovery(address indexed tokenRecovered, uint256 amount);
-
-  /**
-   * @dev Modifier to make a function callable only when claim is allowed.
-   */
-  modifier whenVested() {
-    require(block.timestamp > vestingTime, "Vester: claim time must be greater than vesting time");
-    _;
-  }
 
   // Modifier to prevent contracts to participate
   modifier notContract() {
@@ -64,19 +59,31 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
   }
 
   /**
-   * @notice It allows the admin to update set vesting time
-   * @param _vestingTime: the new vesting time
+   * @notice It allows the admin to update set claim time
+   * @param _claimTime: the new claim time
    * @dev This function is only callable by admin.
    */
-  function setVestingTime(uint256 _vestingTime) external onlyOwner {
+  function setClaimTime(uint256 _claimTime) external onlyOwner {
     require(
-      block.timestamp < _vestingTime,
-      "Vester::setVestingTime: New vestingTime must be higher than current timestamp"
+      block.timestamp < _claimTime,
+      "Vester::setClaimTime: New claim time must be higher than current timestamp"
     );
 
-    vestingTime = _vestingTime;
+    claimTime = _claimTime;
 
-    emit NewVestingTime(_vestingTime);
+    emit NewClaimTime(_claimTime);
+  }
+
+  /**
+   * @notice It allows the admin to update set claim status
+   * @param _claimStatus: the new vesting status
+   * @dev This function is only callable by admin.
+   */
+  function setClaimStatus(bool _claimStatus) external onlyOwner {
+
+    claimStatus = _claimStatus;
+
+    emit NewClaimStatus(_claimStatus);
   }
 
   function setOfferingToken(address _offeringToken) external onlyOwner {
@@ -84,7 +91,7 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
     emit OfferingTokenSet(_offeringToken);
   }
 
-  function setUserInfoForAccount(address _user, uint8 _pid, uint256 _offeringTokenAmount) external override  {
+  function setUserInfoForAccount(address _user, uint8 _pid, uint256 _offeringTokenAmount) external override {
     _validateHandler();
     _userInfo[_user][_pid].offeringTokenAmount = _offeringTokenAmount;
     emit UserInfoSet(_user,_offeringTokenAmount, _userInfo[_user][_pid].claimedPool, _pid);
@@ -94,7 +101,10 @@ contract Vester is IVester, ReentrancyGuard, Ownable {
    * @notice It allows users to claim from pool
    * @param _pid: pool id
    */
-  function claim(uint8 _pid) external override nonReentrant notContract whenVested {
+  function claim(uint8 _pid) external override nonReentrant notContract {
+    // Check if the claim is allowed
+    require(claimStatus || (block.timestamp > claimTime && claimTime > 0), "Vester: claim time must be greater than claim time");
+
     address _account = msg.sender;
 
     // Checks whether pool id is valid

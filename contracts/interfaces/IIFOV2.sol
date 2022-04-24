@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity =0.6.12;
+pragma experimental ABIEncoderV2;
 
 interface IIFOV2 {
     /**
@@ -56,6 +57,11 @@ interface IIFOV2 {
         uint256 _thresholdPoints
     ) external;
 
+    struct PoolInfo {
+        address whitelister;
+        address vester;
+    }
+
     /**
      * @notice It returns the pool information
      * @param _pid: poolId
@@ -69,19 +75,8 @@ interface IIFOV2 {
         uint256,
         bool,
         uint256,
-        uint256
-    );
-
-    /**
-     * @notice It returns the pool information
-     * @param _pid: poolId
-     */
-    function viewPoolInformation2(uint256 _pid)
-    external
-    view
-    returns (
-      address,
-      address
+        uint256,
+        PoolInfo memory
     );
 
     /**
