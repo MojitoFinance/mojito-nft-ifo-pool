@@ -46,6 +46,25 @@ contract Vester is IVester, ReentrancyGuard, Ownable, Pausable {
   }
 
   /**
+   * @dev Throws if called by IFOInitializable contract.
+   */
+  modifier onlyHandler() {
+    require(isHandler[msg.sender], "Vester: forbidden");
+    _;
+  }
+
+  /**
+   * @notice Constructor
+   * @param _offeringToken: the token that is offered for the IFO
+   * @param _handler: the address of the IFOInitializable
+   */
+  constructor(address _offeringToken, address _handler) public {
+    offeringToken = _offeringToken;
+    isHandler[_handler] = true;
+    _pause();
+  }
+
+  /**
    * @notice It allows the admin to update IFOInitializable address
    * @param _handler: IFOInitializable contract address
    * @param _isActive: true means the operation is allowed
@@ -86,8 +105,7 @@ contract Vester is IVester, ReentrancyGuard, Ownable, Pausable {
    * @param _offeringTokenAmount: the offering amount of user to be claimed in the pool
    * @dev This function is only callable by initializable contract.
    */
-  function setUserInfoForAccount(address _user, uint256 _offeringTokenAmount) external override {
-    _validateHandler();
+  function setUserInfoForAccount(address _user, uint256 _offeringTokenAmount) external override onlyHandler {
     _userInfo[_user].offeringTokenAmount = _offeringTokenAmount;
     emit UserInfoSet(_user,_offeringTokenAmount, _userInfo[_user].claimedPool);
   }
@@ -127,13 +145,6 @@ contract Vester is IVester, ReentrancyGuard, Ownable, Pausable {
     IKRC20(offeringToken).safeTransfer(address(this), _amount);
 
     emit Claim(_account, _amount);
-  }
-
-  /**
-   * @notice Validate handler
-   */
-  function _validateHandler() private view {
-    require(isHandler[msg.sender], "Vester: forbidden");
   }
 
   /**
