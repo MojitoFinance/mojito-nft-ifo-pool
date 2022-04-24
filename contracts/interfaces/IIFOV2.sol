@@ -57,7 +57,14 @@ interface IIFOV2 {
         uint256 _thresholdPoints
     ) external;
 
-    struct PoolInfo {
+    // Struct that contains each pool characteristics
+    struct PoolCharacteristics {
+        uint256 raisingAmountPool; // amount of tokens raised for the pool (in LP tokens)
+        uint256 offeringAmountPool; // amount of tokens offered for the pool (in offeringTokens)
+        uint256 limitPerUserInLP; // limit of tokens per user (if 0, it is ignored)
+        bool hasTax; // tax on the overflow (if any, it works with _calculateTaxOverflow)
+        uint256 totalAmountPool; // total amount pool deposited (in LP tokens)
+        uint256 sumTaxesOverflow; // total taxes collected (starts at 0, increases with each harvest if overflow)
         address whitelister;
         address vester;
     }
@@ -70,13 +77,7 @@ interface IIFOV2 {
     external
     view
     returns (
-        uint256,
-        uint256,
-        uint256,
-        bool,
-        uint256,
-        uint256,
-        PoolInfo memory
+        PoolCharacteristics memory
     );
 
     /**
