@@ -47,10 +47,10 @@ describe("IFOInitializable", function () {
         this.lpToken       = await MojitoERC20Mock.new("LP", "LP", {from: caller});
         this.offeringToken = await MojitoERC20Mock.new("IFO", "IFO", {from: caller});
         this.whitelistable = await Whitelistable.new({from: caller});
-        this.vester1 = await Vester.new({from: caller});
-        this.vester2 = await Vester.new({from: caller});
         this.ifoInit1          = await IFOInitializable.new({from: caller});
         this.ifoInit2       = await IFOInitializable.new({from: caller});
+        this.vester1 = await Vester.new(this.offeringToken.address,this.ifoInit1.address,{from: caller});
+        this.vester2 = await Vester.new(this.offeringToken.address,this.ifoInit2.address,{from: caller});
         await this.mojitoProfile.grantRole(await this.mojitoProfile.POINT_ROLE(), this.ifoInit1.address, {from: caller});
         await this.mojitoProfile.grantRole(await this.mojitoProfile.POINT_ROLE(), this.ifoInit2.address, {from: caller});
     });
@@ -370,7 +370,7 @@ describe("IFOInitializable", function () {
         const data = await this.ifoInit2.viewUserOfferingAndRefundingAmountsForPools(caller, [1]);
         expect(data[0][0]).to.be.bignumber.equal(new BN("200"));
         expect(data[0][1]).to.be.bignumber.equal(new BN("198"));
-        expect(data[0][2]).to.be.bignumber.equal(new BN("2"));
+        expect(data[0][2]).to.be.bignumber.equal(new BN("1"));
     });
 
     it("harvestPool(too early)", async function () {
@@ -454,6 +454,12 @@ describe("IFOInitializable", function () {
         ), "IFOInitializable::harvestPool: Already done");
     });
 
+    it("claim(current timestamp < claim time)", async function () {
+        await expectRevert(this.vester1.claim(
+            {from: caller},
+        ), "Vester: No claims allowed at current time");
+    });
+
     it("increase time", async function () {
         let currentTime=await time.latest()
         await time.increase(currentTime+600);
@@ -466,13 +472,27 @@ describe("IFOInitializable", function () {
     });
 
     it("claim(0)", async function () {
-        await this.offeringToken.mint(this.vester1.address, "50");
+        await this.offeringToken.mint(this.vester1.address, "150");
         await this.vester1.claim(
             {from: caller},
         );
         const data = await this.vester1.claimable(caller);
         expect(data[0]).to.be.bignumber.equal(new BN("50"));
         expect(data[1]).to.be.equal(true);
+        expect(await this.offeringToken.balanceOf(caller)).to.be.bignumber.equal(new BN("50"));
+        expect(await this.offeringToken.balanceOf(this.vester1.address)).to.be.bignumber.equal(new BN("100"));
+    });
+
+    it("recoverWrongTokens()", async function () {
+        await expectEvent(await this.vester1.recoverWrongTokens(
+                this.offeringToken.address,
+                {from: caller},
+            ),
+            "AdminTokenRecovery",
+            {
+                tokenRecovered: this.offeringToken.address,
+                amount: "100",
+            });
     });
 
     it("claim(1)", async function () {
@@ -483,6 +503,8 @@ describe("IFOInitializable", function () {
         const data = await this.vester2.claimable(caller);
         expect(data[0]).to.be.bignumber.equal(new BN("200"));
         expect(data[1]).to.be.equal(true);
+        // 50+100+200
+        expect(await this.offeringToken.balanceOf(caller)).to.be.bignumber.equal(new BN("350"));
     });
 
     it("finalWithdraw(not owner)", async function () {

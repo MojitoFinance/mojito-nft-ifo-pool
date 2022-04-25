@@ -9,10 +9,11 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 import "./interfaces/IVester.sol";
 import "./interfaces/IKRC20.sol";
 
-contract Vester is IVester, ReentrancyGuard, Ownable, Pausable {
+contract Vester is IVester, ReentrancyGuard, Ownable {
   using SafeERC20 for IKRC20;
 
   uint256 public claimTime;
+  bool public claimStatus;
 
   // The address of the offeringToken
   address public offeringToken;
@@ -30,6 +31,8 @@ contract Vester is IVester, ReentrancyGuard, Ownable, Pausable {
   event OfferingTokenSet(address offeringToken);
 
   event NewClaimTime(uint256 claimTime);
+
+  event NewClaimStatus(bool claimStatus);
 
   event UserInfoSet(address indexed user, uint256 indexed offeringTokenAmount, bool claimedPool);
 
@@ -61,7 +64,7 @@ contract Vester is IVester, ReentrancyGuard, Ownable, Pausable {
   constructor(address _offeringToken, address _handler) public {
     offeringToken = _offeringToken;
     isHandler[_handler] = true;
-    _pause();
+    claimStatus = false;
   }
 
   /**
@@ -85,9 +88,19 @@ contract Vester is IVester, ReentrancyGuard, Ownable, Pausable {
     );
 
     claimTime = _claimTime;
-
     emit NewClaimTime(_claimTime);
   }
+
+  /**
+   * @notice It allows the admin to update set claim status
+   * @param _claimStatus: the new claim status, true means that the user can claim
+   * @dev This function is only callable by admin.
+   */
+  function setClaimStatus(bool _claimStatus) external onlyOwner {
+    claimStatus = _claimStatus;
+    emit NewClaimStatus(_claimStatus);
+  }
+
 
   /**
    * @notice It allows users to set offering token
@@ -107,7 +120,7 @@ contract Vester is IVester, ReentrancyGuard, Ownable, Pausable {
    */
   function setUserInfoForAccount(address _user, uint256 _offeringTokenAmount) external override onlyHandler {
     _userInfo[_user].offeringTokenAmount = _offeringTokenAmount;
-    emit UserInfoSet(_user,_offeringTokenAmount, _userInfo[_user].claimedPool);
+    emit UserInfoSet(_user, _offeringTokenAmount, _userInfo[_user].claimedPool);
   }
 
   /**
@@ -128,7 +141,7 @@ contract Vester is IVester, ReentrancyGuard, Ownable, Pausable {
    */
   function claim() external override nonReentrant notContract {
     // Check if the claim is allowed
-    require(!paused() || (block.timestamp > claimTime && claimTime > 0), "Vester: No claims allowed at current time");
+    require(claimStatus || (block.timestamp > claimTime && claimTime > 0), "Vester: No claims allowed at current time");
 
     address _account = msg.sender;
 
@@ -142,7 +155,7 @@ contract Vester is IVester, ReentrancyGuard, Ownable, Pausable {
 
     uint256 _amount = _userInfo[_account].offeringTokenAmount;
 
-    IKRC20(offeringToken).safeTransfer(address(this), _amount);
+    IKRC20(offeringToken).safeTransfer(_account, _amount);
 
     emit Claim(_account, _amount);
   }
