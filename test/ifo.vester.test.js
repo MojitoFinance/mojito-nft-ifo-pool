@@ -190,6 +190,14 @@ describe("IFOInitializable", function () {
         );
     });
 
+    it("setClaimStatus(not owner)", async function () {
+        await expectRevert(this.vester1.setClaimStatus(
+            true,
+            {from: other}
+        ), "Ownable: caller is not the owner");
+        expect(await this.vester1.claimStatus()).to.be.equal(false);
+    });
+
     it("setOfferingToken()", async function () {
         await this.vester1.setOfferingToken(
             this.offeringToken.address,
@@ -370,7 +378,8 @@ describe("IFOInitializable", function () {
         const data = await this.ifoInit2.viewUserOfferingAndRefundingAmountsForPools(caller, [1]);
         expect(data[0][0]).to.be.bignumber.equal(new BN("200"));
         expect(data[0][1]).to.be.bignumber.equal(new BN("198"));
-        expect(data[0][2]).to.be.bignumber.equal(new BN("1"));
+        // 200-198
+        expect(data[0][2]).to.be.bignumber.equal(new BN("2"));
     });
 
     it("harvestPool(too early)", async function () {
