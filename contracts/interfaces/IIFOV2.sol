@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity =0.6.12;
+pragma experimental ABIEncoderV2;
 
 interface IIFOV2 {
     /**
@@ -34,11 +35,13 @@ interface IIFOV2 {
      * @dev This function is only callable by admin.
      */
     function setPool(
-        uint256 _offeringAmountPool,
-        uint256 _raisingAmountPool,
-        uint256 _limitPerUserInLP,
-        bool _hasTax,
-        uint8 _pid
+      uint256 _offeringAmountPool,
+      uint256 _raisingAmountPool,
+      uint256 _limitPerUserInLP,
+      bool _hasTax,
+      uint8 _pid,
+      address _whitelister,
+      address _vester
     ) external;
 
     /**
@@ -54,6 +57,18 @@ interface IIFOV2 {
         uint256 _thresholdPoints
     ) external;
 
+    // Struct that contains each pool characteristics
+    struct PoolCharacteristics {
+        uint256 raisingAmountPool; // amount of tokens raised for the pool (in LP tokens)
+        uint256 offeringAmountPool; // amount of tokens offered for the pool (in offeringTokens)
+        uint256 limitPerUserInLP; // limit of tokens per user (if 0, it is ignored)
+        bool hasTax; // tax on the overflow (if any, it works with _calculateTaxOverflow)
+        uint256 totalAmountPool; // total amount pool deposited (in LP tokens)
+        uint256 sumTaxesOverflow; // total taxes collected (starts at 0, increases with each harvest if overflow)
+        address whitelister;
+        address vester;
+    }
+
     /**
      * @notice It returns the pool information
      * @param _pid: poolId
@@ -62,12 +77,7 @@ interface IIFOV2 {
     external
     view
     returns (
-        uint256,
-        uint256,
-        uint256,
-        bool,
-        uint256,
-        uint256
+        PoolCharacteristics memory
     );
 
     /**

@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity =0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/IKRC20.sol";
 import "./interfaces/IIFOV2.sol";
+import "./interfaces/IWhitelistable.sol";
+import "./interfaces/IVester.sol";
 import "./MojitoProfile.sol";
 
 contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
@@ -63,16 +66,6 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
 
     // It maps the address to pool id to UserInfo
     mapping(address => mapping(uint8 => UserInfo)) private _userInfo;
-
-    // Struct that contains each pool characteristics
-    struct PoolCharacteristics {
-        uint256 raisingAmountPool; // amount of tokens raised for the pool (in LP tokens)
-        uint256 offeringAmountPool; // amount of tokens offered for the pool (in offeringTokens)
-        uint256 limitPerUserInLP; // limit of tokens per user (if 0, it is ignored)
-        bool hasTax; // tax on the overflow (if any, it works with _calculateTaxOverflow)
-        uint256 totalAmountPool; // total amount pool deposited (in LP tokens)
-        uint256 sumTaxesOverflow; // total taxes collected (starts at 0, increases with each harvest if overflow)
-    }
 
     // Struct that contains each user information for both pools
     struct UserInfo {
@@ -168,6 +161,9 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         // Checks whether the pool id is valid
         require(_pid < NUMBER_POOLS, "IFOInitializable::depositPool: Non valid pool id");
 
+        // Checks if account is whitelisted, must check if pid is valid first
+        require(_checkWhitelistStatus(_pid, msg.sender), "IFOInitializable::depositPool: This address is not in the whitelist");
+
         // Checks that pool was set
         require(
             _poolInformation[_pid].offeringAmountPool > 0 && _poolInformation[_pid].raisingAmountPool > 0,
@@ -183,8 +179,11 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         // Checks that the amount deposited is not inferior to 0
         require(_amount > 0, "IFOInitializable::depositPool: Amount must be > 0");
 
-        // Verify tokens were deposited properly
-        require(offeringToken.balanceOf(address(this)) >= totalTokensOffered, "IFOInitializable::depositPool: Tokens not deposited properly");
+        address vester = _poolInformation[_pid].vester;
+        if (vester == address(0)) {
+            // Verify tokens were deposited properly
+            require(offeringToken.balanceOf(address(this)) >= totalTokensOffered, "IFOInitializable::depositPool: Tokens not deposited properly");
+        }
 
         // Transfers funds to this contract
         lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
@@ -244,7 +243,12 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
 
         // Transfer these tokens back to the user if quantity > 0
         if (offeringTokenAmount > 0) {
-            offeringToken.safeTransfer(address(msg.sender), offeringTokenAmount);
+            address vester = _poolInformation[_pid].vester;
+            if (vester == address(0)) {
+                offeringToken.safeTransfer(address(msg.sender), offeringTokenAmount);
+            } else {
+                IVester(vester).setUserInfoForAccount(msg.sender, offeringTokenAmount);
+            }
         }
 
         if (refundingTokenAmount > 0) {
@@ -304,7 +308,9 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         uint256 _raisingAmountPool,
         uint256 _limitPerUserInLP,
         bool _hasTax,
-        uint8 _pid
+        uint8 _pid,
+        address _whitelister,
+        address _vester
     ) external override onlyOwner {
         require(block.number < startBlock, "IFOInitializable::setPool: IFO has started");
         require(_pid < NUMBER_POOLS, "IFOInitializable::setPool: Pool does not exist");
@@ -313,6 +319,8 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
         _poolInformation[_pid].raisingAmountPool = _raisingAmountPool;
         _poolInformation[_pid].limitPerUserInLP = _limitPerUserInLP;
         _poolInformation[_pid].hasTax = _hasTax;
+        _poolInformation[_pid].whitelister = _whitelister;
+        _poolInformation[_pid].vester = _vester;
 
         uint256 tokensDistributedAcrossPools;
 
@@ -328,8 +336,8 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
 
     /**
      * @notice It updates point parameters for the IFO.
-     * @param _numberPoints: the number of points for the IFO
      * @param _campaignId: the campaignId for the IFO
+     * @param _numberPoints: the number of points for the IFO
      * @param _thresholdPoints: the amount of LP required to receive points
      * @dev This function is only callable by admin.
      */
@@ -382,33 +390,15 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
     /**
      * @notice It returns the pool information
      * @param _pid: poolId
-     * @return raisingAmountPool: amount of LP tokens raised (in LP tokens)
-     * @return offeringAmountPool: amount of tokens offered for the pool (in offeringTokens)
-     * @return limitPerUserInLP; // limit of tokens per user (if 0, it is ignored)
-     * @return hasTax: tax on the overflow (if any, it works with _calculateTaxOverflow)
-     * @return totalAmountPool: total amount pool deposited (in LP tokens)
-     * @return sumTaxesOverflow: total taxes collected (starts at 0, increases with each harvest if overflow)
      */
     function viewPoolInformation(uint256 _pid)
     external
     view
     override
-    returns (
-        uint256,
-        uint256,
-        uint256,
-        bool,
-        uint256,
-        uint256
-    )
+    returns (PoolCharacteristics memory)
     {
         return (
-        _poolInformation[_pid].raisingAmountPool,
-        _poolInformation[_pid].offeringAmountPool,
-        _poolInformation[_pid].limitPerUserInLP,
-        _poolInformation[_pid].hasTax,
-        _poolInformation[_pid].totalAmountPool,
-        _poolInformation[_pid].sumTaxesOverflow
+        _poolInformation[_pid]
         );
     }
 
@@ -633,5 +623,15 @@ contract IFOInitializable is IIFOV2, ReentrancyGuard, Ownable {
             size := extcodesize(_addr)
         }
         return size > 0;
+    }
+
+    /**
+     * @dev Checks if account is whitelisted
+     * @param _pid: poolId
+     * @param _account: The address to check
+     */
+    function _checkWhitelistStatus(uint8 _pid, address _account) internal view returns (bool) {
+        address whitelistCheckerAddress = _poolInformation[_pid].whitelister;
+        return (whitelistCheckerAddress == address(0)) || IWhitelistable(whitelistCheckerAddress).isWhitelisted(_account);
     }
 }
